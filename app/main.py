@@ -4,6 +4,8 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from app.errors import BusinessError, object_payload
 from app.pipeline import run, sample_text
+from app.merge import merge
+from app.modules.m1_sessions.rules import FIELDS
 from app import store
 from app.exporter import evidence_csv
 from app.timeops import display_full
@@ -29,18 +31,29 @@ def home(request:Request): return page(request,1)
 def page(request:Request,module:int):
     if module not in range(1,8): raise BusinessError("MODULE","模块不存在",404)
     ident=request.query_params.get("run_id")
+    from_history=bool(ident)
     item=store.get(ident) if ident else store.save(sample_text(),run(sample_text()))
-    return templates.TemplateResponse(request=request,name="workbench.html",context={"title":'软件许可证并发席位与离线租约',"modules":MODULES,"active":module,"run":item,"report":item["result"]["reports"][module-1]})
+    versions=store.history(item["id"])
+    return templates.TemplateResponse(request=request,name="workbench.html",context={"title":'软件许可证并发席位与离线租约',"modules":MODULES,"active":module,"run":item,"report":item["result"]["reports"][module-1],"versions":versions,"from_history":from_history})
 @app.post("/api/run")
 def calculate(payload:object=Body(default=None)):
     payload=object_payload(payload)
     text=payload.get("text",sample_text())
     if not isinstance(text,str): raise BusinessError("TEXT","输入须为文本")
+    base=payload.get("base_id")
+    if base is not None:
+        if not isinstance(base,str): raise BusinessError("BASE","补传基准须为文本")
+        merged,merge_info=merge(store.latest_input(base),text,FIELDS)
+        item=store.supplement(base,merged,run(merged),merge_info)
+        return item
     return store.save(text,run(text))
 @app.get("/api/runs")
-def list_runs(): return store.history()
+def list_runs(run_id:str|None=None): return store.history(run_id)
 @app.get("/api/runs/{ident}")
 def run_detail(ident:str): return store.get(ident)
+@app.get("/api/runs/{ident}/versions")
+def run_versions(ident:str):
+    return {"id":ident,"versions":store.history(ident)}
 @app.post("/api/review")
 def review(payload:object=Body(...)):
     payload=object_payload(payload)

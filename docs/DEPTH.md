@@ -27,6 +27,10 @@
 | TRAP-19 | 采购版冲突 | 静默采信错误值 | 显式版本优先级 | `app/modules/m5_excess/rules.py` | `tests/test_excess.py::test_excess_capacity_version` |
 | TRAP-23 | 同刻交接 | 静默采信错误值 | 先结束后开始 | `app/modules/m4_concurrency/rules.py` | `tests/test_concurrency.py::test_sweep_boundary` |
 | TRAP-26 | 陈旧补传 | 静默采信错误值 | 递增版本 | `app/modules/m7_audit/rules.py` | `tests/test_audit.py::test_audit_stale` |
+| TRAP-27 | 补传后发现日志断档 | 把疑似超用直接判成违规，或等日志齐了错过日报 | gap 区间内的超用记为待补证，不阻断复核 | `app/coverage.py`、`app/modules/m5_excess/rules.py` | `tests/test_coverage.py`、`tests/test_publish.py::test_gap_splits_confirmed_and_pending` |
+| TRAP-28 | 晚到释放事件 | 按原到期时间报，冤枉用户 | 补传后按发布链重算受影响窗口并列出差异 | `app/revision.py`、`app/store.py` | `tests/test_publish.py::test_recalculation_lists_affected_windows` |
+| TRAP-29 | 同批补传重试 | 一次重试发布两个版本 | 合并输入按行去重，相同输入复用已有版本 | `app/merge.py`、`app/store.py` | `tests/test_publish.py::test_supplement_retry_does_not_republish`、`tests/test_merge.py` |
+| TRAP-30 | 更新失败 | 旧版结论被半截写入覆盖 | 单事务写入，失败回滚，旧版完整保留 | `app/store.py` | `tests/test_publish.py::test_failed_update_keeps_old_version` |
 
 ## 对账规则
 

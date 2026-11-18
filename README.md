@@ -6,6 +6,8 @@
 
 按租约有效区间扫线统计并发，同刻先结束后开始；离线到期前始终占席，重复心跳不重复占用。
 
+超用分两级：日志覆盖完整的窗口为“已证实超用”；落在网关断档区间内的超用为“待补证超用”，不阻断当天复核发布。补传后按发布链重算受影响的并发与超用，历史发布结论保留可查。
+
 ## 启动
 
 ```bash
@@ -28,7 +30,7 @@ docker compose config --quiet
 
 ## 输入与输出
 
-CSV可用UTF-8或GB18030；上传保留字符串编号和物理行号。POST `/api/run` 接收 `text` 字段。`GET /api/runs` 查询历史，`POST /api/review` 接收 id、revision、decision。导出按钮下载唯一证据CSV，含运行摘要与隔离记录。
+CSV可用UTF-8或GB18030；上传保留字符串编号和物理行号。POST `/api/run` 接收 `text` 字段；带 `base_id` 时把 `text` 作为补传片段追加到该批次谱系并发布新版本。`GET /api/runs` 查询历史，`GET /api/runs/{id}/versions` 查询同一批次的发布链，`POST /api/review` 接收 id、revision、decision。导出按钮下载唯一证据CSV，含运行摘要、结论、重算差异与隔离记录。
 
 SQLite命名卷保存运行记录。重建演示数据可更换卷名后重启。无需外部网络数据。规则定义见 `docs/DATA-DICTIONARY.md`；边界和测试对应关系见 `docs/DEPTH.md`。
 
